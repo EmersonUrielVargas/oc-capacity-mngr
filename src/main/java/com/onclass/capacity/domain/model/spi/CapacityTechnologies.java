@@ -1,4 +1,4 @@
-package com.onclass.capacity.domain.model;
+package com.onclass.capacity.domain.model.spi;
 
 import java.util.List;
 

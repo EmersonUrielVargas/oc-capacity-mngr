@@ -28,7 +28,7 @@ management:
     refresh:
       enabled: false
 technology-mngr:
-  base-url: "${TECHNOLOGY_MNGR_BASE_URL:https://onclass.free.beeceptor.com/technology}"
+  base-url: "${TECHNOLOGY_MNGR_BASE_URL:http://localhost:8080/technology}"
   timeout: "500"
 resilience4j.circuitbreaker:
   circuit-breaker-aspect-order: 1
@@ -61,7 +61,7 @@ resilience4j:
         initialInterval: 500ms    # Intervalo inicial para el backoff
     instances:
       technologyMngrRetry:
-        maxAttempts: 5
+        maxAttempts: 1
         waitDuration: 1000ms
         enableExponentialBackoff: true
         exponentialBackoffMultiplier: 1.5

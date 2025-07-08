@@ -3,11 +3,13 @@ package com.onclass.capacity.infrastructure.adapters.technologiesadapter;
 import com.onclass.capacity.domain.enums.TechnicalMessage;
 import com.onclass.capacity.domain.exceptions.BusinessException;
 import com.onclass.capacity.domain.exceptions.TechnicalException;
-import com.onclass.capacity.domain.model.CapacityTechnologies;
+import com.onclass.capacity.domain.model.spi.CapacityTechnologies;
 import com.onclass.capacity.domain.spi.TechnologiesGateway;
 import com.onclass.capacity.domain.utilities.CustomPage;
 import com.onclass.capacity.infrastructure.adapters.technologiesadapter.dto.TechnologyMngrProperties;
 import com.onclass.capacity.infrastructure.adapters.technologiesadapter.dto.request.TechnologyAssign;
+import com.onclass.capacity.infrastructure.entrypoints.util.Constants;
+import com.onclass.capacity.infrastructure.entrypoints.util.ResponseDTO;
 import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.reactor.retry.RetryOperator;
@@ -23,7 +25,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import static com.onclass.capacity.infrastructure.adapters.technologiesadapter.util.Constants.*;
 
@@ -51,48 +53,51 @@ public class TechnologyMngrAdapter implements TechnologiesGateway {
 
     @Override
     @CircuitBreaker(name = "technologyMngr", fallbackMethod = "fallback")
-    public Mono<Void> assignTechnologiesToCapacity(Long capacityId, List<Long> technologiesIds) {
+    public Mono<ResponseDTO> assignTechnologiesToCapacity(Long capacityId, List<Long> technologiesIds) {
         log.info(LOG_START_ASSIGN_TECHNOLOGIES, technologiesIds, capacityId);
         TechnologyAssign requestBody = new TechnologyAssign(capacityId, technologiesIds);
         return webClient.post()
             .uri(uriBuilder -> uriBuilder
                     .path(TECHNOLOGY_MNGR_PATH_ASSIGN)
                     .build())
-            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .header(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE_JSON)
             .bodyValue(requestBody)
             .retrieve()
             .onStatus(HttpStatusCode::is4xxClientError, response -> buildErrorResponse(response, TechnicalMessage.TECHNOLOGIES_NOT_FOUND))
-            .onStatus(HttpStatusCode::is5xxServerError, response -> buildErrorResponse(response, TechnicalMessage.ERROR_ASSIGN_TECHNOLOGIES))
-            .bodyToMono(Void.class)
-            .doOnNext(response -> log.info("Received API response : {}", response))
+            .onStatus(HttpStatusCode::is5xxServerError, response -> buildErrorResponse(response, TechnicalMessage.ERROR_TECHNOLOGIES_ADAPTER))
+            .bodyToMono(ResponseDTO.class)
+            .doOnNext(response -> log.info(LOG_API_RESPONSE, response))
+            .doOnSuccess(response -> log.info("Completed assign technologies in capacity"))
             .transformDeferred(RetryOperator.of(retry))
             .transformDeferred(mono -> Mono.defer(() -> bulkhead.executeSupplier(() -> mono)))
-            .doOnTerminate(() -> log.info("Completed assign technologies in capacity"))
-            .doOnError(error -> log.error("Error occurred in capacity mngr: {}", error.getMessage()));
+            .doOnError(error -> log.error(ERROR_LOG_CAPACITY_MNGR, error.getMessage()));
     }
 
     @Override
     public Mono<List<CapacityTechnologies>> getTechnologiesByCapabilitiesIds(List<Long> capabilitiesIds) {
         log.info(LOG_START_GET_TECHNOLOGIES_BY_CAPABILITIES_IDS, capabilitiesIds);
-        return webClient.post()
+        String idsParam = capabilitiesIds.stream()
+                                 .map(String::valueOf)
+                                 .collect(Collectors.joining(","));
+        return webClient.get()
             .uri(uriBuilder -> uriBuilder
                 .path(TECHNOLOGY_MNGR_PATH_GET_BY_CAPABILITIES)
+                .queryParam(Constants.QUERY_PARAM_CAPABILITIES_IDS, idsParam)
                 .build())
             .header(HttpHeaders.CONTENT_TYPE, "application/json")
-            .bodyValue(capabilitiesIds)
             .retrieve()
             .onStatus(HttpStatusCode::is4xxClientError, response -> buildErrorResponse(response, TechnicalMessage.TECHNOLOGIES_NOT_FOUND))
-            .onStatus(HttpStatusCode::is5xxServerError, response -> buildErrorResponse(response, TechnicalMessage.ERROR_ASSIGN_TECHNOLOGIES))
+            .onStatus(HttpStatusCode::is5xxServerError, response -> buildErrorResponse(response, TechnicalMessage.ERROR_TECHNOLOGIES_ADAPTER))
             .bodyToMono(new ParameterizedTypeReference<List<CapacityTechnologies>>() {})
-            .doOnNext(response -> log.info("Received API response : {}", response))
+            .doOnNext(response -> log.info(LOG_API_RESPONSE, response))
+            .doOnSuccess(list -> log.info("Completed getting capabilities in bootcamp"))
             .transformDeferred(RetryOperator.of(retry))
             .transformDeferred(mono ->
                 Mono.defer(() ->
                     bulkhead.executeSupplier(() -> mono)
                 )
             )
-            .doOnTerminate(() -> log.info("Completed getting capabilities in bootcamp"))
-            .doOnError(error -> log.error("Error occurred in capacity mngr: {}", error.getMessage()));
+            .doOnError(error -> log.error(ERROR_LOG_CAPACITY_MNGR, error.getMessage()));
     }
 
     @Override
@@ -100,31 +105,53 @@ public class TechnologyMngrAdapter implements TechnologiesGateway {
         log.info(LOG_START_GET_TECHNOLOGIES_PAGINATION, order, page, size);
         return webClient.get()
             .uri(uriBuilder -> uriBuilder
+                .path(TECHNOLOGY_MNGR_PATH_CAPABILITIES_SORT_BY_TECHNOLOGIES)
                 .queryParam(QUERY_PARAM_ORDER_SORT, order)
                 .queryParam(QUERY_PARAM_PAGE, page)
                 .queryParam(QUERY_PARAM_SIZE, size)
                 .build())
-            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .header(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE_JSON)
             .retrieve()
             .onStatus(HttpStatusCode::is4xxClientError, response -> buildErrorResponse(response, TechnicalMessage.TECHNOLOGIES_NOT_FOUND))
-            .onStatus(HttpStatusCode::is5xxServerError, response -> buildErrorResponse(response, TechnicalMessage.ERROR_ASSIGN_TECHNOLOGIES))
+            .onStatus(HttpStatusCode::is5xxServerError, response -> buildErrorResponse(response, TechnicalMessage.ERROR_TECHNOLOGIES_ADAPTER))
             .bodyToMono(new ParameterizedTypeReference<CustomPage<CapacityTechnologies>>() {})
-            .doOnNext(response -> log.info("Received API response : {}", response))
+            .doOnNext(response -> log.info(LOG_API_RESPONSE, response))
             .transformDeferred(RetryOperator.of(retry))
             .transformDeferred(mono ->
                 Mono.defer(() ->
                     bulkhead.executeSupplier(() -> mono)
                 )
             )
-            .doOnTerminate(() -> log.info("Completed getting capabilities in bootcamp"))
-            .doOnError(error -> log.error("Error occurred in capacity mngr: {}", error.getMessage()));
+            .doOnError(error -> log.error(ERROR_LOG_CAPACITY_MNGR, error.getMessage()));
+    }
+
+    @Override
+    public Mono<Void> deleteTechnologiesByCapabilitiesIds(List<Long> capabilitiesIds) {
+         log.info(LOG_START_DELETE_TECHNOLOGIES_BY_CAPABILITIES_IDS, capabilitiesIds);
+         String idsParam = capabilitiesIds.stream()
+                                 .map(String::valueOf)
+                                 .collect(Collectors.joining(","));
+        return webClient.delete()
+            .uri(uriBuilder -> uriBuilder
+                .path(TECHNOLOGY_MNGR_PATH_DELETE_TECHNOLOGIES_BY_CAPABILITIES)
+                .queryParam(Constants.QUERY_PARAM_CAPABILITIES_IDS, idsParam)
+                .build())
+            .header(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE_JSON)
+            .retrieve()
+            .onStatus(HttpStatusCode::is4xxClientError, response -> buildErrorResponse(response, TechnicalMessage.TECHNOLOGIES_NOT_FOUND))
+            .onStatus(HttpStatusCode::is5xxServerError, response -> buildErrorResponse(response, TechnicalMessage.ERROR_TECHNOLOGIES_ADAPTER))
+            .bodyToMono(ResponseDTO.class)
+            .doOnNext(response -> log.info(LOG_API_RESPONSE, response))
+            .then()
+            .doOnSuccess(response -> log.info("Completed assign technologies in capacity"))
+            .transformDeferred(RetryOperator.of(retry))
+            .transformDeferred(mono -> Mono.defer(() -> bulkhead.executeSupplier(() -> mono)))
+            .doOnError(error -> log.error(ERROR_LOG_CAPACITY_MNGR, error.getMessage()));
     }
 
     public Mono<Throwable> fallback(Throwable t) {
         return Mono.defer(() ->
-                Mono.justOrEmpty(t instanceof TimeoutException
-                                ? new TechnicalException(TechnicalMessage.INTERNAL_ERROR)
-                                : t)
+                Mono.error(new TechnicalException(TechnicalMessage.ERROR_TECHNOLOGIES_ADAPTER))
         );
     }
 }

@@ -2,5 +2,5 @@ package com.onclass.capacity.infrastructure.adapters.technologiesadapter.dto.req
 
 import java.util.List;
 
-public record TechnologyAssign(Long capacityId, List<Long> technologiesIds) {
+public record TechnologyAssign(Long capacityID, List<Long> technologiesIds) {
 }
