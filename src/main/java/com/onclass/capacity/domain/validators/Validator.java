@@ -2,6 +2,7 @@ package com.onclass.capacity.domain.validators;
 
 import com.onclass.capacity.domain.constants.Constants;
 import com.onclass.capacity.domain.enums.TechnicalMessage;
+import com.onclass.capacity.domain.exceptions.BusinessException;
 import com.onclass.capacity.domain.exceptions.InvalidFormatParamException;
 import com.onclass.capacity.domain.exceptions.ParamRequiredMissingException;
 import com.onclass.capacity.domain.model.Capacity;
@@ -49,6 +50,12 @@ public class Validator {
             return Mono.error(new InvalidFormatParamException(TechnicalMessage.CAPACITY_DESCRIPTION_TOO_LONG));
         }
         return Mono.just(capacity);
+    }
+    public static Mono<Void> validationCondition(boolean condition, BusinessException exception) {
+        if (!condition) {
+            return Mono.error(exception);
+        }
+        return Mono.empty();
     }
 
     public static <T> boolean isNullOrEmpty(T value){

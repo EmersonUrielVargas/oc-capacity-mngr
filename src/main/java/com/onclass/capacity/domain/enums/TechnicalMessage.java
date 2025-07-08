@@ -18,10 +18,13 @@ public enum TechnicalMessage {
     CAPACITY_CREATED("201", "capacity created successful", ""),
     CAPACITY_ALREADY_EXISTS("400","The capacity already exist." ,"" ),
     TECHNOLOGIES_NOT_FOUND("404","Some of the technologies to be register were not found, please verify data" ,"" ),
-    ERROR_ASSIGN_TECHNOLOGIES("500","Something went wrong with the capacity adapter, please try again" ,"" ),
+    SOME_CAPABILITIES_NOT_FOUND("404","Some of the capabilities were not found, please verify data" ,"" ),
+    ERROR_TECHNOLOGIES_ADAPTER("500","Something went wrong with the technology adapter, please try again" ,"" ),
     LIST_TECHNOLOGIES_IS_TOO_SHORT("404","List of the technologies must contain at least one" ,"" ),
     LIST_TECHNOLOGIES_IS_TOO_LONG("404","List of the technologies exceeds the allowed limit" ,"" ),
-    ERROR_CREATING_CAPACITY("500","An error occurred while creating the capacity" ,"" );
+    ERROR_CREATING_CAPACITY("500","An error occurred while creating the capacity" ,"" ),
+    CAPABILITIES_ASSIGN_OK("200", "Capabilities assigned successful", ""),
+    DELETE_CAPABILITIES_OK("200", "Capabilities by bootcamp id deleted successful", "");
 
     private final String code;
     private final String message;
