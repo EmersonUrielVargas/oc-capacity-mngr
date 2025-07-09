@@ -1,5 +1,8 @@
 package com.onclass.capacity.infrastructure.entrypoints.util;
 
+import com.onclass.capacity.domain.model.spi.CapabilitiesPerBootcamp;
+import com.onclass.capacity.domain.model.spi.CapacityList;
+import com.onclass.capacity.domain.utilities.CustomPage;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -26,4 +29,12 @@ public class Constants {
     public final String QUERY_PARAM_ID = "id";
     public final String DEFAULT_SIZE_PAGINATION = "10";
     public final String DEFAULT_PAGE_PAGINATION = "0";
+    
+    
+    public final String MESSAGE_UNAUTHORIZED = "Unauthorized";
+    public final String MESSAGE_VALIDATION_ERROR = "Validation error";
+    
+    /*Class to Open API*/
+    public class CustomPageCapacityList extends CustomPage<CapacityList> {}
+    public class CustomPageCapabilitiesPerBootcamp extends CustomPage<CapabilitiesPerBootcamp> {}
 }
